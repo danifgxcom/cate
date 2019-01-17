@@ -189,34 +189,12 @@ def _normalize_lon_360(ds: xr.Dataset) -> xr.Dataset:
     if not np.any(lon_values[lon_size_05:] > 180.):
         return ds
 
-    delta_lon = lon_values[1] - lon_values[0]
-
-    var_names = [var_name for var_name in ds.data_vars]
-
-    ds = ds.assign_coords(lon=xr.DataArray(np.linspace(-180. + 0.5 * delta_lon,
-                                                       +180. - 0.5 * delta_lon,
-                                                       lon_size),
-                                           dims=ds['lon'].dims,
-                                           attrs=dict(long_name='longitude',
-                                                      standard_name='longitude',
-                                                      units='degrees east')))
+    ds = ds.roll(lon=int(lon_size/2))
+    ds = ds.assign_coords(lon=(((ds.lon + 180 - 0.5) % 360) - 180))
 
     ds = adjust_spatial_attrs_impl(ds, True)
 
-    new_vars = dict()
-    for var_name in var_names:
-        var = ds[var_name]
-        if len(var.dims) >= 1 and var.dims[-1] == 'lon':
-            values = np.copy(var.values)
-            temp = np.copy(values[..., : lon_size_05])
-            values[..., : lon_size_05] = values[..., lon_size_05:]
-            values[..., lon_size_05:] = temp
-            # import matplotlib.pyplot as plt
-            # im = values[(len(values.shape) - 2) * [0] + [slice(None), slice(None)]]
-            # plt.imshow(im)
-            new_vars[var_name] = xr.DataArray(values, dims=var.dims, attrs=var.attrs, encoding=var.encoding)
-
-    return ds.assign(**new_vars)
+    return ds
 
 
 def _normalize_jd2datetime(ds: xr.Dataset) -> xr.Dataset:
@@ -648,6 +626,7 @@ def _get_temporal_res(time: np.ndarray) -> str:
     :param time: A numpy array containing np.datetime64 objects
     :return: Temporal resolution formatted as an ISO 8601:2004 duration string
     """
+
     delta = time[1] - time[0]
     days = delta.astype('timedelta64[D]') / np.timedelta64(1, 'D')
 
