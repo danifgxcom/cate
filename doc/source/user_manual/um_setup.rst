@@ -151,7 +151,7 @@ Windows:
 
 .. code-block:: console
 
-    > conda env create -n cate-env
+    > conda env create -n cate-env (if that does not work, you may try conda create --name cate-env)
     > activate cate-env
     > conda install -c conda-forge -c ccitools cate-cli
     > cate --help
